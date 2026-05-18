@@ -107,7 +107,7 @@ export default function Hero() {
         target: window,
         type: "wheel,touch,pointer",
         preventDefault: true,
-        tolerance: 15,
+        tolerance: 5,
         onChange: (self: any) => {
           const now = Date.now();
           // Synchronous high-momentum decay safeguard
@@ -119,8 +119,9 @@ export default function Hero() {
           const isDrag = self.event && (self.event.type.includes('touch') || self.event.type.includes('pointer'));
           const normalizedDeltaY = isDrag ? -self.deltaY : self.deltaY;
           
-          // High-threshold filter: ignore tiny/unintentional drags, only snap on deliberate swipes
-          if (Math.abs(normalizedDeltaY) < 30) return;
+          // Effortless threshold calibration: 10px on mobile for butter-smooth snap, 25px for desktop wheel
+          const threshold = isDrag ? 10 : 25;
+          if (Math.abs(normalizedDeltaY) < threshold) return;
           
           const dir = normalizedDeltaY > 0 ? 1 : -1;
 
