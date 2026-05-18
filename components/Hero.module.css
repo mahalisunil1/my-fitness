@@ -644,8 +644,8 @@
   }
 
   .lineGroup:last-child .charContainer {
-    font-size: 25vw;
-    margin-top: -5vw;
+    font-size: 32vw;
+    margin-top: 2vw;
   }
 
   .layerText {
@@ -655,8 +655,10 @@
   }
 
   .layerFg {
-    height: 70%;
-    bottom: -2%;
+    width: 120vw;
+    left: -10vw;
+    height: 85%;
+    bottom: -3%;
   }
 
   .giantTextWrapper {
@@ -876,12 +878,12 @@
 
 @media (max-width: 768px) {
   .badgeCutout {
-    padding: 0.5rem 1.75rem;
-    border-radius: 0 0 14px 14px;
+    padding: 0.5rem 1.7rem;
+    border-radius: 0 0 18px 18px;
   }
-  
+
   .badgeText {
-    font-size: 0.7rem;
-    letter-spacing: 0.2em;
+    font-size: 0.82rem;
+    letter-spacing: 0.22em;
   }
 }
