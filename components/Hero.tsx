@@ -91,7 +91,12 @@ export default function Hero() {
         tolerance: 15,
         onChange: (self: any) => {
           if (isSnapping) return;
-          const dir = self.deltaY > 0 ? 1 : -1;
+          
+          // GSAP Observer deltaY is positive for wheel-down, but negative for drag-up.
+          // To ensure swipe-up (finger going up) scrolls down on mobile, we invert the delta for touch/pointer events.
+          const isDrag = self.event && (self.event.type.includes('touch') || self.event.type.includes('pointer'));
+          const normalizedDeltaY = isDrag ? -self.deltaY : self.deltaY;
+          const dir = normalizedDeltaY > 0 ? 1 : -1;
 
           if (!inServices) {
             // ── HERO STATE ──
@@ -107,7 +112,7 @@ export default function Hero() {
             }
           } else if (inTrainers) {
             // ── TRAINERS STATE ──
-            const newTrainPos = gsap.utils.clamp(0, 1, trainerRailPos + self.deltaY / 2000);
+            const newTrainPos = gsap.utils.clamp(0, 1, trainerRailPos + normalizedDeltaY / 2000);
             if (newTrainPos <= 0 && dir < 0) {
               isSnapping = true;
               trainersTimeline.reverse().eventCallback('onReverseComplete', () => {
@@ -135,7 +140,7 @@ export default function Hero() {
             }
           } else {
             // ── SERVICES STATE ──
-            const newPos = gsap.utils.clamp(0, 1, railPos + self.deltaY / 2000);
+            const newPos = gsap.utils.clamp(0, 1, railPos + normalizedDeltaY / 2000);
 
             if (newPos <= 0 && dir < 0) {
               isSnapping = true;
