@@ -22,10 +22,6 @@ const trainers: Trainer[] = [
 export default function TrainersSection() {
   return (
     <div className={styles.trainersContainer}>
-      <div className={styles.header}>
-        <h2 className={styles.title}>ARCHITECTS</h2>
-      </div>
-
       <div className={styles.accordionContainer}>
         {trainers.map((trainer, index) => (
           <div 
@@ -53,6 +49,18 @@ export default function TrainersSection() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Beautiful View All Button */}
+      <div className={styles.viewAllWrapper}>
+        <button className={styles.viewAllBtn}>
+          <span className={styles.btnDot}></span>
+          <span className={styles.btnText}>VIEW ALL ARCHITECTS</span>
+          <svg className={styles.btnArrow} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <line x1="5" y1="12" x2="19" y2="12" />
+            <polyline points="12 5 19 12 12 19" />
+          </svg>
+        </button>
       </div>
     </div>
   );

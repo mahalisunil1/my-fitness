@@ -66,23 +66,42 @@ export default function Hero() {
         .to(`.${styles.motivationalText}, .${styles.bottomRight}, .${styles.ctaBtn}`, { opacity: 0, y: 20, duration: 0.45 }, "-=0.6")
         .to(fgRef.current, { scale: 0.95, filter: "grayscale(0.5) contrast(1.1)", duration: 1.1 }, "-=0.4")
         .to(bgRef.current, { filter: "grayscale(0.4) contrast(1.05)", opacity: 0.8, duration: 1.1 }, "-=1.1")
-        .to(`.${styles.servicesSheet}`, { y: 0, opacity: 1, duration: 0.9, ease: "power2.out" }, "-=0.75");
+        .to(`.${styles.servicesSheet}`, { y: 0, opacity: 1, duration: 0.9, ease: "power2.out" }, "-=0.75")
+        .to("#section-badge-cutout", { y: 0, x: "-50%", opacity: 1, duration: 0.8, ease: "power3.out" }, "-=0.75");
 
       // TIMELINE 2: Services → Trainers reveal
       const trainersTimeline = gsap.timeline({ paused: true });
       trainersTimeline
         .to(`.${styles.servicesSheet}`, { opacity: 0, y: 50, duration: 0.8, ease: "power2.in" })
         .set(`.${trainerStyles.trainersContainer}`, { visibility: 'visible', pointerEvents: 'auto' })
-        .to(`.${trainerStyles.trainersContainer}`, { y: 0, opacity: 1, duration: 1.2, ease: "power3.out" })
-        .to(`.${trainerStyles.header}`, { opacity: 1, y: 0, duration: 0.8 }, "-=0.6")
-        .to(`.${trainerStyles.trainerCard}`, { opacity: 1, y: 0, stagger: 0.2, duration: 1, ease: "power2.out" }, "-=0.4");
+        // Dynamic smooth transition of badge cutout to stark dark mode
+        .to("#section-badge-cutout", { 
+          backgroundColor: "rgba(18, 18, 18, 0.8)", 
+          borderColor: "rgba(255, 255, 255, 0.15)",
+          boxShadow: "0 10px 40px rgba(0, 0, 0, 0.4)",
+          duration: 0.5,
+          ease: "sine.inOut"
+        }, 0)
+        // Cross-fade text content
+        .to("#section-badge-text", { opacity: 0, y: -8, duration: 0.2 })
+        .call(function(this: any) {
+          const textEl = document.getElementById("section-badge-text");
+          if (textEl) {
+            textEl.textContent = trainersTimeline.reversed() ? "OUR SERVICES" : "THE ARCHITECTS";
+          }
+        })
+        .to("#section-badge-text", { opacity: 1, y: 0, color: "#ffffff", duration: 0.2 })
+        .to(`.${trainerStyles.trainersContainer}`, { y: 0, opacity: 1, duration: 1.2, ease: "power3.out" }, "-=0.5")
+        .from(`.${trainerStyles.accordionPanel}`, { opacity: 0, y: 30, stagger: 0.1, duration: 0.8, ease: "power2.out" }, "-=0.6")
+        .from(`.${trainerStyles.viewAllWrapper}`, { opacity: 0, y: 15, duration: 0.6, ease: "power2.out" }, "-=0.4");
 
       let inServices = false;    
       let inTrainers = false;
       let isSnapping = false;    
       let railPos = 0;
-      let trainerRailPos = 0;
+      let trainerActiveIndex = 0;
       let activeIndex = 0;
+      let lastSnapTime = 0; // Strict timestamp-based momentum throttle
 
       Observer.create({
         target: window,
@@ -90,92 +109,185 @@ export default function Hero() {
         preventDefault: true,
         tolerance: 15,
         onChange: (self: any) => {
+          const now = Date.now();
+          // Synchronous high-momentum decay safeguard
+          if (now - lastSnapTime < 850) return;
           if (isSnapping) return;
           
           // GSAP Observer deltaY is positive for wheel-down, but negative for drag-up.
           // To ensure swipe-up (finger going up) scrolls down on mobile, we invert the delta for touch/pointer events.
           const isDrag = self.event && (self.event.type.includes('touch') || self.event.type.includes('pointer'));
           const normalizedDeltaY = isDrag ? -self.deltaY : self.deltaY;
+          
+          // High-threshold filter: ignore tiny/unintentional drags, only snap on deliberate swipes
+          if (Math.abs(normalizedDeltaY) < 30) return;
+          
           const dir = normalizedDeltaY > 0 ? 1 : -1;
 
           if (!inServices) {
             // ── HERO STATE ──
             if (dir > 0) {
               isSnapping = true;
+              lastSnapTime = Date.now();
               sectionTimeline.play().eventCallback('onComplete', () => {
                 inServices = true;
-                isSnapping = false;
-                // Initial highlight
-                gsap.to(`.hub-item-0`, { opacity: 1, x: 20, duration: 0.4 });
+                // Initial highlight (no horizontal shift on mobile)
+                const shiftX = window.innerWidth > 768 ? 20 : 0;
+                gsap.to(`.hub-item-0`, { opacity: 1, x: shiftX, duration: 0.4 });
                 gsap.to(`.hub-preview-0`, { opacity: 1, scale: 1, duration: 0.8 });
+                
+                // Debounce lock release so lingering swipe momentum is swallowed
+                setTimeout(() => {
+                  isSnapping = false;
+                }, 400);
               });
             }
           } else if (inTrainers) {
-            // ── TRAINERS STATE ──
-            const newTrainPos = gsap.utils.clamp(0, 1, trainerRailPos + normalizedDeltaY / 2000);
-            if (newTrainPos <= 0 && dir < 0) {
-              isSnapping = true;
-              trainersTimeline.reverse().eventCallback('onReverseComplete', () => {
-                inTrainers = false;
-                isSnapping = false;
-                trainerRailPos = 0;
-              });
-              return;
-            }
-            trainerRailPos = newTrainPos;
-            const panels = document.querySelectorAll(`.${trainerStyles.accordionPanel}`);
-            if (panels.length > 0) {
-              const total = panels.length;
-              // Map scroll progress (0 to 1) to a panel index
-              // We use 0.999 so that 1.0 maps to the final index (total - 1) instead of overflowing
-              const activeIndex = Math.floor(trainerRailPos * 0.999 * total);
-              
-              panels.forEach((panel, i) => {
-                if (i === activeIndex) {
-                  panel.classList.add(trainerStyles.active);
-                } else {
-                  panel.classList.remove(trainerStyles.active);
-                }
-              });
+            // ── TRAINERS STATE (SNAPPING STEP-BY-STEP) ──
+            const allPanels = document.querySelectorAll(`.${trainerStyles.accordionPanel}`);
+            const panels = Array.from(allPanels).filter(el => window.getComputedStyle(el).display !== 'none');
+            const total = panels.length;
+
+            if (dir > 0) {
+              // Swipe up / scroll down
+              if (trainerActiveIndex < total - 1) {
+                isSnapping = true;
+                lastSnapTime = Date.now();
+                trainerActiveIndex++;
+                
+                panels.forEach((panel, i) => {
+                  if (i === trainerActiveIndex) {
+                    panel.classList.add(trainerStyles.active);
+                  } else {
+                    panel.classList.remove(trainerStyles.active);
+                  }
+                });
+                
+                setTimeout(() => {
+                  isSnapping = false;
+                }, 500);
+              }
+            } else {
+              // Swipe down / scroll up
+              if (trainerActiveIndex > 0) {
+                isSnapping = true;
+                lastSnapTime = Date.now();
+                trainerActiveIndex--;
+                
+                panels.forEach((panel, i) => {
+                  if (i === trainerActiveIndex) {
+                    panel.classList.add(trainerStyles.active);
+                  } else {
+                    panel.classList.remove(trainerStyles.active);
+                  }
+                });
+                
+                setTimeout(() => {
+                  isSnapping = false;
+                }, 500);
+              } else {
+                // At the first trainer, transition back to Services
+                isSnapping = true;
+                lastSnapTime = Date.now();
+                trainersTimeline.reverse().eventCallback('onReverseComplete', () => {
+                  inTrainers = false;
+                  trainerActiveIndex = 0;
+                  activeIndex = services.length - 1;
+                  railPos = 1;
+                  
+                  setTimeout(() => {
+                    isSnapping = false;
+                  }, 400);
+                });
+              }
             }
           } else {
-            // ── SERVICES STATE ──
-            const newPos = gsap.utils.clamp(0, 1, railPos + normalizedDeltaY / 2000);
-
-            if (newPos <= 0 && dir < 0) {
-              isSnapping = true;
-              sectionTimeline.reverse().eventCallback('onReverseComplete', () => {
-                inServices = false;
-                isSnapping = false;
-                railPos = 0;
-              });
-              return;
-            }
-
-            if (newPos >= 1 && dir > 0) {
-              isSnapping = true;
-              trainersTimeline.play().eventCallback('onComplete', () => {
-                inTrainers = true;
-                isSnapping = false;
-                railPos = 1;
-              });
-              return;
-            }
-
-            railPos = newPos;
-            
-            // Calculate active index
-            const newIndex = Math.round(railPos * (services.length - 1));
-            if (newIndex !== activeIndex) {
-               // Update list items
-               gsap.to(`.${styles.hubItem}`, { opacity: 0.15, x: 0, duration: 0.4 });
-               gsap.to(`.hub-item-${newIndex}`, { opacity: 1, x: 20, duration: 0.4 });
-               
-               // Cross-fade previews
-               gsap.to(`.hub-preview-${activeIndex}`, { opacity: 0, scale: 0.95, duration: 0.6 });
-               gsap.to(`.hub-preview-${newIndex}`, { opacity: 1, scale: 1, duration: 0.6 });
-               
-               activeIndex = newIndex;
+            // ── SERVICES STATE (SNAPPING STEP-BY-STEP) ──
+            if (dir > 0) {
+              // Swipe up / scroll down
+              if (activeIndex < services.length - 1) {
+                isSnapping = true;
+                lastSnapTime = Date.now();
+                const nextIndex = activeIndex + 1;
+                
+                // Cross-fade indicators and previews
+                const shiftX = window.innerWidth > 768 ? 20 : 0;
+                gsap.to(`.${styles.hubItem}`, { opacity: 0.15, x: 0, duration: 0.4 });
+                gsap.to(`.hub-item-${nextIndex}`, { opacity: 1, x: shiftX, duration: 0.4 });
+                
+                gsap.to(`.hub-preview-${activeIndex}`, { opacity: 0, scale: 0.95, duration: 0.6 });
+                gsap.to(`.hub-preview-${nextIndex}`, { opacity: 1, scale: 1, duration: 0.6 });
+                
+                activeIndex = nextIndex;
+                railPos = activeIndex / (services.length - 1);
+                
+                // Lock scroll to allow animation to complete
+                setTimeout(() => {
+                  isSnapping = false;
+                }, 600);
+              } else {
+                // At the last service, transition to trainers
+                isSnapping = true;
+                lastSnapTime = Date.now();
+                trainersTimeline.play().eventCallback('onComplete', () => {
+                  inTrainers = true;
+                  railPos = 1;
+                  trainerActiveIndex = 0;
+                  
+                  // Make sure the first panel is active, and others are inactive
+                  const allPanels = document.querySelectorAll(`.${trainerStyles.accordionPanel}`);
+                  const panels = Array.from(allPanels).filter(el => window.getComputedStyle(el).display !== 'none');
+                  panels.forEach((panel, i) => {
+                    if (i === 0) {
+                      panel.classList.add(trainerStyles.active);
+                    } else {
+                      panel.classList.remove(trainerStyles.active);
+                    }
+                  });
+                  
+                  // Debounce lock release so lingering swipe momentum is swallowed
+                  setTimeout(() => {
+                    isSnapping = false;
+                  }, 400);
+                });
+              }
+            } else {
+              // Swipe down / scroll up
+              if (activeIndex > 0) {
+                isSnapping = true;
+                lastSnapTime = Date.now();
+                const prevIndex = activeIndex - 1;
+                
+                // Cross-fade indicators and previews
+                const shiftX = window.innerWidth > 768 ? 20 : 0;
+                gsap.to(`.${styles.hubItem}`, { opacity: 0.15, x: 0, duration: 0.4 });
+                gsap.to(`.hub-item-${prevIndex}`, { opacity: 1, x: shiftX, duration: 0.4 });
+                
+                gsap.to(`.hub-preview-${activeIndex}`, { opacity: 0, scale: 0.95, duration: 0.6 });
+                gsap.to(`.hub-preview-${prevIndex}`, { opacity: 1, scale: 1, duration: 0.6 });
+                
+                activeIndex = prevIndex;
+                railPos = activeIndex / (services.length - 1);
+                
+                // Lock scroll to allow animation to complete
+                setTimeout(() => {
+                  isSnapping = false;
+                }, 600);
+              } else {
+                // At the first service, transition back to Hero
+                isSnapping = true;
+                lastSnapTime = Date.now();
+                sectionTimeline.reverse().eventCallback('onReverseComplete', () => {
+                  inServices = false;
+                  railPos = 0;
+                  activeIndex = 0;
+                  
+                  // Debounce lock release so lingering swipe momentum is swallowed
+                  setTimeout(() => {
+                    isSnapping = false;
+                  }, 400);
+                });
+              }
             }
           }
         }
@@ -300,7 +412,6 @@ export default function Hero() {
       <div className={styles.servicesSheet}>
         <div className={styles.editorialHub}>
           <div className={styles.hubLeft}>
-            <div className={styles.hubHeaderTitle}>OUR SERVICES</div>
             <div className={styles.hubList}>
               {services.map((service, i) => (
                 <div key={service.id} className={`${styles.hubItem} hub-item-${i}`}>
@@ -324,6 +435,12 @@ export default function Hero() {
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Dynamic Top-Center Badge Cutout */}
+      <div className={styles.badgeCutout} id="section-badge-cutout">
+        <span className={styles.badgeDot}></span>
+        <span className={styles.badgeText} id="section-badge-text">OUR SERVICES</span>
       </div>
 
       <TrainersSection />
