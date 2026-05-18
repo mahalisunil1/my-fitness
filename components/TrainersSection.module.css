@@ -15,6 +15,8 @@
   visibility: hidden;
   overflow: hidden;
   touch-action: none;
+  border: 3px solid green;
+  pointer-events: none;
 }
 
 .header {
@@ -31,7 +33,7 @@
   margin: 0;
   line-height: 0.8;
   letter-spacing: 0.05em;
-  text-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  text-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .accordionContainer {
@@ -44,20 +46,20 @@
 
 .accordionPanel {
   position: relative;
-  flex: 1; 
+  flex: 1;
   height: 100%;
   overflow: hidden;
   transition: flex 0.8s cubic-bezier(0.25, 1, 0.2, 1), filter 0.8s ease;
   border-radius: 20px;
   filter: grayscale(100%) brightness(0.4);
   cursor: pointer;
-  border: 1px solid rgba(255,255,255,0.05);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .accordionPanel.active {
-  flex: 6; 
+  flex: 6;
   filter: grayscale(0%) brightness(1);
-  border-color: rgba(255,255,255,0.15);
+  border-color: rgba(255, 255, 255, 0.15);
   box-shadow: 0 20px 45px rgba(0, 0, 0, 0.5);
 }
 
@@ -77,7 +79,7 @@
 .panelOverlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0) 100%);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.3) 50%, rgba(0, 0, 0, 0) 100%);
   opacity: 0.85;
   transition: opacity 0.8s ease;
 }
@@ -261,12 +263,12 @@
   .viewAllWrapper {
     margin-top: 2vh;
   }
-  
+
   .viewAllBtn {
     padding: 0.8rem 2.2rem;
     gap: 12px;
   }
-  
+
   .btnText {
     font-size: 0.68rem;
     letter-spacing: 0.25em;
@@ -331,9 +333,21 @@
 }
 
 @keyframes pulseBtnDot {
-  0% { transform: scale(0.9); opacity: 0.6; }
-  50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 12px #facc15; }
-  100% { transform: scale(0.9); opacity: 0.6; }
+  0% {
+    transform: scale(0.9);
+    opacity: 0.6;
+  }
+
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+    box-shadow: 0 0 12px #facc15;
+  }
+
+  100% {
+    transform: scale(0.9);
+    opacity: 0.6;
+  }
 }
 
 /* Hover micro-interactions */
